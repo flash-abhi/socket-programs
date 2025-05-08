@@ -1,0 +1,103 @@
+<!-- no need to change the prewritten code.
+complete the script tag code. -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Task Management App</title>
+</head>
+
+<body>
+    <div id="task-form">
+        <!-- Create a form to add new tasks -->
+        <form id="create-task-form">
+            <input type="text" id="task-text" placeholder="Enter a new task" required>
+            <button id="create-task" type="submit">Add Task</button>
+        </form>
+    </div>
+
+    <div id="task-list">
+        <!-- Tasks will be displayed here -->
+    </div>
+
+    <script src="http://localhost:3000/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io.connect('http://localhost:3000');
+
+        // -------------------write your code here.--------------------
+
+        const taskInput = document.getElementById("task-text");
+        const taskForm = document.getElementById("create-task-form");
+        const taskList = document.getElementById("task-list");
+
+        taskForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const task = taskInput.value.trim();
+            taskInput.value = "";
+            
+            if (task) {
+                socket.emit("task-data", task);
+            }
+            const i = 1
+            socket.on("data-received",(data)=>{
+                if(i){
+                createTaskElement(data._id,data.message);
+                i--;
+                }
+            });
+        });
+
+        socket.on("broadcast_message", (taskData) => {
+            createTaskElement(taskData._id, taskData.message);
+        });
+
+        socket.on("task-updated", (updatedTask) => {
+            // Find span by data-id and update content
+            const taskSpan = document.querySelector(`span[data-id='${updatedTask._id}']`);
+            if (taskSpan) {
+                taskSpan.textContent = updatedTask.message + "  ";
+            }
+        });
+
+        function createTaskElement(id, message) {
+            const taskDiv = document.createElement("div");
+            const taskSpan = document.createElement("span");
+            const updateButton = document.createElement("button");
+            const deleteButton = document.createElement("button");
+
+            taskSpan.textContent = message + "  ";
+            taskSpan.dataset.id = id;
+            taskSpan.style.padding = "10px";
+
+            updateButton.textContent = "Update";
+            updateButton.style.margin = "5px";
+            updateButton.classList.add("update-btn");
+
+            deleteButton.textContent = "Delete";
+            deleteButton.style.margin = "5px";
+            deleteButton.classList.add("delete-btn");
+
+            updateButton.addEventListener('click', () => {
+                const newMessage = prompt("Edit task:", taskSpan.textContent.trim());
+                if (newMessage) {
+                    socket.emit("update", {
+                        id: id,
+                        message: newMessage
+                    });
+                }
+            });
+            deleteButton.addEventListener('click',()=>{
+                socket.emit("delete",{
+                        id: id,
+                        message: newMessage
+                    });
+            })
+            taskDiv.append(taskSpan, deleteButton, updateButton)
+            taskList.append(taskDiv);
+        }
+
+    </script>
+</body>
+
+</html>
